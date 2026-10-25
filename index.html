@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nokia 1100 Retro Cricket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap');
+
+        :root {
+            --lcd-bg: #8eb828;
+            --lcd-pixel: #112306;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Crisp 1-Bit Pixel Canvas */
+        #lcd-canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            background-color: var(--lcd-bg);
+            box-shadow: inset 0 0 18px rgba(14, 31, 5, 0.35);
+        }
+
+        /* Authentic LCD Dot Matrix Grid Overlay */
+        .lcd-grid-overlay {
+            background-image: 
+                linear-gradient(to right, rgba(17, 35, 6, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(17, 35, 6, 0.08) 1px, transparent 1px);
+            background-size: 4px 4px;
+            pointer-events: none;
+        }
+
+        /* Backlight Glow Effect */
+        .lcd-backlight {
+            box-shadow: 
+                0 0 28px rgba(142, 184, 40, 0.38),
+                inset 0 2px 6px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Nokia Keypad Button Styling */
+        .nokia-key {
+            background: linear-gradient(180deg, #4b5563 0%, #272e38 100%);
+            border-top: 2px solid #6b7280;
+            border-bottom: 3px solid #111827;
+            border-left: 1px solid #374151;
+            border-right: 1px solid #374151;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.05s ease;
+            cursor: pointer;
+        }
+
+        .nokia-key:active, .nokia-key.active-press {
+            transform: translateY(2px);
+            border-bottom-width: 1px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+            background: linear-gradient(180deg, #65a30d 0%, #3f6212 100%);
+        }
+
+        .nokia-nav-key {
+            background: linear-gradient(180deg, #a3e635 0%, #65a30d 100%);
+            border-top: 2px solid #d9f99d;
+            border-bottom: 4px solid #365314;
+            color: #0f172a;
+            cursor: pointer;
+            transition: transform 0.05s ease;
+        }
+
+        .nokia-nav-key:active, .nokia-nav-key.active-press {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+            background: linear-gradient(180deg, #bef264 0%, #84cc16 100%);
+        }
+
+        /* Phone Chassis */
+        .phone-shell {
+            background: linear-gradient(145deg, #2e323b 0%, #181a20 100%);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.85),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15),
+                inset 0 -4px 10px rgba(0, 0, 0, 0.7);
+            border: 3px solid #374151;
+        }
+
+        /* Full Screen LCD Mode */
+        .screen-only-mode .phone-chassis-parts {
+            display: none !important;
+        }
+        
+        .screen-only-mode .phone-shell {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0 !important;
+            max-width: 460px !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between py-2 px-2 sm:py-3 text-slate-100">
+
+    <!-- Top Controls Bar -->
+    <header class="w-full max-w-md flex flex-wrap items-center justify-between gap-1 px-2.5 py-1.5 mb-1 bg-slate-900/90 backdrop-blur rounded-xl border border-slate-700/80 text-xs shadow-lg">
+        <div class="flex items-center gap-1.5">
+            <span id="status-led" class="inline-block w-2.5 h-2.5 rounded-full bg-[#8eb828] shadow-[0_0_8px_#8eb828]"></span>
+            <span class="font-black tracking-wider text-[#8eb828] text-[11px] sm:text-xs">NOKIA 1100</span>
+            <span id="live-key-badge" class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-lime-300 border border-slate-700">READY</span>
+        </div>
+        <div class="flex items-center gap-1">
+            <button id="btn-autobowl" type="button" class="px-2 py-1 rounded bg-[#8eb828]/25 hover:bg-[#8eb828]/35 border border-[#8eb828]/60 text-[#b7e83c] text-[10px] font-extrabold transition cursor-pointer">
+                AUTO-BOWL: ON
+            </button>
+            <button id="btn-speed" type="button" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-lime-300 text-[10px] font-extrabold transition cursor-pointer">
+                PACE: EASY
+            </button>
+            <button id="btn-view" type="button" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold transition cursor-pointer">
+                BIG LCD
+            </button>
+            <button id="btn-sound" type="button" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[#8eb828] text-[10px] font-bold transition cursor-pointer">
+                🔊
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Nokia Phone Container -->
+    <main id="app-wrapper" class="w-full flex-1 flex flex-col items-center justify-center">
+        <div class="phone-shell w-full max-w-[380px] rounded-[42px] p-3.5 sm:p-5 flex flex-col items-center relative transition-all duration-200">
+            
+            <!-- Earpiece & Branding -->
+            <div class="phone-chassis-parts w-full flex flex-col items-center mb-2">
+                <div class="w-16 h-1.5 bg-slate-900 rounded-full mb-1 shadow-inner border-b border-slate-700"></div>
+                <div class="text-[11px] font-extrabold tracking-[0.28em] text-slate-300 uppercase">NOKIA</div>
+            </div>
+
+            <!-- Metallic Screen Bezel -->
+            <div class="w-full bg-gradient-to-b from-slate-300 via-slate-200 to-slate-400 p-2 sm:p-2.5 rounded-[22px] shadow-inner border-2 border-slate-500">
+                <!-- Relative Screen Container (Matches exact vertical aspect ratio of reference screenshot) -->
+                <div id="screen-container" class="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden lcd-backlight border-4 border-[#1b2613] cursor-pointer">
+                    <canvas id="lcd-canvas" width="120" height="150" class="w-full h-full block"></canvas>
+                    <div id="lcd-grid" class="lcd-grid-overlay absolute inset-0"></div>
+                </div>
+            </div>
+
+            <!-- Dedicated Primary Action Bar (Always visible in both modes for instant 1-tap play) -->
+            <div class="w-full grid grid-cols-4 gap-1.5 mt-2.5 px-0.5">
+                <button type="button" data-key="4" class="nokia-key py-2 rounded-xl flex flex-col items-center justify-center text-white border border-slate-600">
+                    <span class="text-xs font-black text-[#b7e83c]">◀ LEFT (4)</span>
+                    <span class="text-[9px] text-slate-300 font-semibold">Move / Pull</span>
+                </button>
+                <button type="button" data-key="5" class="nokia-nav-key col-span-2 py-2 rounded-xl flex flex-col items-center justify-center shadow-lg">
+                    <span class="text-xs sm:text-sm font-black tracking-wide uppercase">🏏 BOWL / HIT (5)</span>
+                    <span class="text-[9px] font-extrabold text-slate-900">SPACE OR TAP SCREEN</span>
+                </button>
+                <button type="button" data-key="6" class="nokia-key py-2 rounded-xl flex flex-col items-center justify-center text-white border border-slate-600">
+                    <span class="text-xs font-black text-[#b7e83c]">RIGHT (6) ▶</span>
+                    <span class="text-[9px] text-slate-300 font-semibold">Move / Cut</span>
+                </button>
+            </div>
+
+            <!-- Secondary Quick Controls Row -->
+            <div class="phone-chassis-parts w-full flex items-center justify-between gap-1.5 mt-1.5 mb-1.5 px-0.5">
+                <button type="button" data-key="menu" class="nokia-key w-20 py-1.5 rounded-xl flex flex-col items-center justify-center text-white">
+                    <span class="text-[10px] font-bold text-slate-200">MODES</span>
+                    <span class="w-5 h-0.5 bg-lime-400 rounded mt-0.5"></span>
+                </button>
+
+                <button type="button" data-key="2" class="nokia-key flex-1 py-1.5 rounded-xl flex flex-col items-center justify-center text-white border border-[#8eb828]/50">
+                    <span class="text-[11px] font-black text-[#b7e83c] tracking-wide">▲ LOFT SIX (2 / UP)</span>
+                </button>
+
+                <button type="button" data-key="0" class="nokia-key w-20 py-1.5 rounded-xl flex flex-col items-center justify-center text-white">
+                    <span class="text-[10px] font-bold text-slate-200">RESET 0/0</span>
+                    <span class="w-5 h-0.5 bg-slate-400 rounded mt-0.5"></span>
+                </button>
+            </div>
+
+            <!-- Classic 3x4 Number Keypad -->
+            <div class="phone-chassis-parts w-full grid grid-cols-3 gap-1.5 px-0.5">
+                <button type="button" data-key="1" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">1</span>
+                    <span class="text-[9px] text-[#b7e83c] font-bold tracking-tighter">HOOK 6 ↖</span>
+                </button>
+                <button type="button" data-key="2" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">2 <span class="text-[9px] font-normal text-slate-400">abc</span></span>
+                    <span class="text-[9px] text-[#b7e83c] font-bold tracking-tighter">LOFT 6 ▲</span>
+                </button>
+                <button type="button" data-key="3" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">3 <span class="text-[9px] font-normal text-slate-400">def</span></span>
+                    <span class="text-[9px] text-[#b7e83c] font-bold tracking-tighter">SLASH 6 ↗</span>
+                </button>
+
+                <button type="button" data-key="4" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">4 <span class="text-[9px] font-normal text-slate-400">ghi</span></span>
+                    <span class="text-[9px] text-[#b7e83c] font-bold tracking-tighter">⬅ STEP & PULL</span>
+                </button>
+                <button type="button" data-key="5" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white ring-1 ring-[#8eb828]/70">
+                    <span class="text-sm font-black leading-none text-[#b7e83c]">5 <span class="text-[9px] font-normal text-slate-300">jkl</span></span>
+                    <span class="text-[9px] text-[#b7e83c] font-extrabold tracking-tighter">★ SMASH ★</span>
+                </button>
+                <button type="button" data-key="6" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">6 <span class="text-[9px] font-normal text-slate-400">mno</span></span>
+                    <span class="text-[9px] text-[#b7e83c] font-bold tracking-tighter">STEP & CUT ➡</span>
+                </button>
+
+                <button type="button" data-key="7" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">7 <span class="text-[9px] font-normal text-slate-400">pqrs</span></span>
+                    <span class="text-[9px] text-slate-300 font-semibold tracking-tighter">FLICK 4 ↙</span>
+                </button>
+                <button type="button" data-key="8" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">8 <span class="text-[9px] font-normal text-slate-400">tuv</span></span>
+                    <span class="text-[9px] text-slate-300 font-semibold tracking-tighter">DEFEND ▼</span>
+                </button>
+                <button type="button" data-key="9" class="nokia-key py-1.5 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">9 <span class="text-[9px] font-normal text-slate-400">wxyz</span></span>
+                    <span class="text-[9px] text-slate-300 font-semibold tracking-tighter">DRIVE 4 ↘</span>
+                </button>
+
+                <button type="button" data-key="*" class="nokia-key py-1 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">*</span>
+                    <span class="text-[8px] text-slate-400 uppercase">MODES</span>
+                </button>
+                <button type="button" data-key="0" class="nokia-key py-1 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">0</span>
+                    <span class="text-[8px] text-slate-400 uppercase">NEW 0/0</span>
+                </button>
+                <button type="button" data-key="#" class="nokia-key py-1 rounded-2xl flex flex-col items-center text-white">
+                    <span class="text-sm font-black leading-none">#</span>
+                    <span class="text-[8px] text-slate-400 uppercase">MUTE</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Controls Legend -->
+    <footer class="w-full max-w-md text-center mt-1 px-2 text-[11px] text-slate-300">
+        <span class="text-[#b7e83c] font-bold">10 Wickets • Easy Pickings!</span> Spot <span class="font-mono text-white">[+]</span> shows where ball pitches first. Press <span class="text-white font-bold">4 / 6</span> (or Arrow Keys) to move &amp; hit, <span class="text-white font-bold">5 / Space / Tap Screen</span> to smash 4s &amp; 6s!
+    </footer>
+
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. CANVAS & PALETTE INITIALIZATION
+            // ============================================================================
+            const canvas = document.getElementById('lcd-canvas');
+            const ctx = canvas.getContext('2d');
+            const liveKeyBadge = document.getElementById('live-key-badge');
+
+            const COLOR_BG = '#8eb828';
+            const COLOR_FG = '#112306';
+            const W = 120;
+            const H = 150;
+
+            // ============================================================================
+            // 2. SAFE RETRO PIEZO BUZZER SOUND ENGINE (Never blocks gameplay)
+            // ============================================================================
+            class NokiaBuzzer {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    try {
+                        if (!this.ctx) {
+                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                            if (AudioCtx) this.ctx = new AudioCtx();
+                        }
+                        if (this.ctx && this.ctx.state === 'suspended') {
+                            this.ctx.resume().catch(() => {});
+                        }
+                    } catch (err) {
+                        // Ignore audio policy errors so gameplay never breaks
+                    }
+                }
+
+                tone(freq, durationMs, delayMs = 0) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const start = this.ctx.currentTime + delayMs / 1000;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(freq, start);
+
+                        gain.gain.setValueAtTime(0.07, start);
+                        gain.gain.exponentialRampToValueAtTime(0.001, start + durationMs / 1000);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc.start(start);
+                        osc.stop(start + durationMs / 1000);
+                    } catch (err) {}
+                }
+
+                keyClick() { this.tone(1046, 22); }
+                bowlRelease() { this.tone(587, 45); }
+                ballBounce() { this.tone(440, 35); }
+                batHit(power = 1) {
+                    if (power >= 2) {
+                        this.tone(880, 45, 0);
+                        this.tone(1318, 70, 45);
+                    } else {
+                        this.tone(659, 45, 0);
+                    }
+                }
+                runBeep() { this.tone(987, 45, 0); }
+                boundaryFour() {
+                    this.tone(659, 75, 0);
+                    this.tone(784, 75, 85);
+                    this.tone(987, 75, 170);
+                    this.tone(1318, 170, 255);
+                }
+                boundarySix() {
+                    this.tone(523, 65, 0);
+                    this.tone(659, 65, 75);
+                    this.tone(784, 65, 150);
+                    this.tone(1046, 100, 225);
+                    this.tone(784, 65, 340);
+                    this.tone(1046, 220, 415);
+                }
+                wicketOut() {
+                    this.tone(659, 95, 0);
+                    this.tone(622, 95, 110);
+                    this.tone(587, 95, 220);
+                    this.tone(523, 240, 330);
+                }
+                winFanfare() {
+                    const notes = [523, 659, 784, 1046, 784, 1046, 1318];
+                    notes.forEach((n, i) => this.tone(n, 85, i * 100));
+                }
+            }
+
+            const sound = new NokiaBuzzer();
+
+            // ============================================================================
+            // 3. BITMAP FONTS & EXACT SCREENSHOT PIXEL SPRITES
+            // ============================================================================
+            const LARGE_FONT = {
+                '0': ["11111","11011","11011","11011","11011","11011","11011","11011","11111"],
+                '1': ["00110","01110","00110","00110","00110","00110","00110","00110","01111"],
+                '2': ["11111","00011","00011","00011","11111","11000","11000","11000","11111"],
+                '3': ["11111","00011","00011","00011","01111","00011","00011","00011","11111"],
+                '4': ["11011","11011","11011","11011","11111","00011","00011","00011","00011"],
+                '5': ["11111","11000","11000","11000","11111","00011","00011","00011","11111"],
+                '6': ["11111","11000","11000","11000","11111","11011","11011","11011","11111"],
+                '7': ["11111","00011","00011","00011","00011","00011","00011","00011","00011"],
+                '8': ["11111","11011","11011","11011","11111","11011","11011","11011","11111"],
+                '9': ["11111","11011","11011","11011","11111","00011","00011","00011","11111"],
+                '/': ["00000","00000","00011","00011","00110","01100","01100","11000","00000"],
+                '.': ["000","000","000","000","000","010","011","000","000"]
+            };
+
+            const MINI_FONT = {
+                'A': ["010","101","111","101","101"],
+                'B': ["110","101","110","101","110"],
+                'C': ["011","100","100","100","011"],
+                'D': ["110","101","101","101","110"],
+                'E': ["111","100","110","100","111"],
+                'F': ["111","100","110","100","100"],
+                'G': ["011","100","101","101","011"],
+                'H': ["101","101","111","101","101"],
+                'I': ["111","010","010","010","111"],
+                'J': ["001","001","001","101","010"],
+                'K': ["101","101","110","101","101"],
+                'L': ["100","100","100","100","111"],
+                'M': ["101","111","111","101","101"],
+                'N': ["101","111","111","111","101"],
+                'O': ["010","101","101","101","010"],
+                'P': ["110","101","110","100","100"],
+                'Q': ["010","101","101","111","001"],
+                'R': ["110","101","110","101","101"],
+                'S': ["011","100","010","001","110"],
+                'T': ["111","010","010","010","010"],
+                'U': ["101","101","101","101","111"],
+                'V': ["101","101","101","101","010"],
+                'W': ["101","101","111","111","101"],
+                'X': ["101","101","010","101","101"],
+                'Y': ["101","101","010","010","010"],
+                'Z': ["111","001","010","100","111"],
+                '0': ["111","101","101","101","111"],
+                '1': ["010","110","010","010","111"],
+                '2': ["111","001","111","100","111"],
+                '3': ["111","001","011","001","111"],
+                '4': ["101","101","111","001","001"],
+                '5': ["111","100","111","001","111"],
+                '6': ["111","100","111","101","111"],
+                '7': ["111","001","001","010","010"],
+                '8': ["111","101","111","101","111"],
+                '9': ["111","101","111","001","111"],
+                ':': ["000","010","000","010","000"],
+                '-': ["000","000","111","000","000"],
+                '/': ["001","001","010","100","100"],
+                '!': ["010","010","010","000","010"],
+                '.': ["000","000","000","000","010"],
+                '*': ["101","010","111","010","101"],
+                '>': ["100","010","001","010","100"],
+                '<': ["001","010","100","010","001"],
+                '[': ["110","100","100","100","110"],
+                ']': ["011","001","001","001","011"],
+                '+': ["000","010","111","010","000"],
+                ' ': ["000","000","000","000","000"]
+            };
+
+            const HUD_ICON_BALL = [
+                "0111110",
+                "1101111",
+                "1011111",
+                "1110111",
+                "1111011",
+                "1111101",
+                "0111110"
+            ];
+
+            const HUD_ICON_BAT = [
+                "011110",
+                "111111",
+                "110011",
+                "111011",
+                "111111",
+                "111111",
+                "011110",
+                "001100"
+            ];
+
+            const SPRITE_BOWLER_STAND = [
+                "0001110000",
+                "0011110000",
+                "0011110000",
+                "0001100000",
+                "0011111000",
+                "0110001100",
+                "0110000110",
+                "0110000011",
+                "0110000110",
+                "0110001100",
+                "0110001100",
+                "0110001100",
+                "0111011100",
+                "0111111000",
+                "0011011000",
+                "0000011000",
+                "0000011000",
+                "0000011000",
+                "0000011000",
+                "0000011100",
+                "0000111100"
+            ];
+
+            const SPRITE_BOWLER_RUN = [
+                "0001110000",
+                "0011110000",
+                "0011110000",
+                "0001100000",
+                "0011111000",
+                "0110011100",
+                "1100001110",
+                "0110000110",
+                "0011111100",
+                "0011111000",
+                "0011111000",
+                "0011011000",
+                "0110001100",
+                "0110001100",
+                "1100000110",
+                "1100000011",
+                "0110000011",
+                "0000000110",
+                "0000001100",
+                "0000011100",
+                "0000111000"
+            ];
+
+            const SPRITE_BOWLER_BOWL = [
+                "0000000110",
+                "0001110110",
+                "0011110100",
+                "0001101100",
+                "0011111000",
+                "0110011000",
+                "1100011000",
+                "0110011000",
+                "0011111000",
+                "0011011000",
+                "0011111000",
+                "0011111000",
+                "0110011000",
+                "0110001100",
+                "1100001100",
+                "1100000110",
+                "1100000110",
+                "0000000110",
+                "0000000110",
+                "0000001110",
+                "0000011110"
+            ];
+
+            const SPRITE_BATSMAN_READY = [
+                "000000011110000000",
+                "000000110011000000",
+                "000000111111110000",
+                "000001110110000000",
+                "000000111100000000",
+                "000001100011000000",
+                "000011000001100000",
+                "000110000000110000",
+                "001100001100110000",
+                "001100011110110000",
+                "011000110011011000",
+                "011000110001111000",
+                "110001100000111000",
+                "110011000100111000",
+                "110011001100111000",
+                "110011011001110000",
+                "110011001101110110",
+                "110001101101110110",
+                "110001100111100110",
+                "110000110011100110",
+                "011000110011100110",
+                "011000011111100110",
+                "001100001111100110",
+                "000111000011100110",
+                "000011110011100110",
+                "000011011111100110",
+                "000011001111100110",
+                "000011000011100110",
+                "000011000011100110",
+                "000011100011100110",
+                "000111100111100110",
+                "000110111110111110",
+                "001111111111111110",
+                "001111110011111000"
+            ];
+
+            const SPRITE_BATSMAN_STEP = [
+                "000000011110000000",
+                "000000110011000000",
+                "000000111111110000",
+                "000001110110000000",
+                "000000111100000000",
+                "000001100011000000",
+                "000011000001100000",
+                "000110000000110000",
+                "001100001100110000",
+                "001100011110110000",
+                "011000110011011000",
+                "011000110001111000",
+                "110001100000111000",
+                "110011000100111011",
+                "110011001100111011",
+                "110011011001110011",
+                "110011001101110011",
+                "110001101101110011",
+                "110001100111100011",
+                "110000110011100011",
+                "011000110011100011",
+                "011000011111100011",
+                "001100001111100011",
+                "000111000011100011",
+                "000011110011100011",
+                "000011000001110011",
+                "000110000000110011",
+                "001100000000111011",
+                "001100000000011011",
+                "011100000000011110",
+                "011110000000111100",
+                "111011000001110110",
+                "111111100011111110",
+                "011111000001111100"
+            ];
+
+            const SPRITE_BATSMAN_BACKLIFT = [
+                "0000000111100000000",
+                "0000001100110000000",
+                "0000001111111100000",
+                "0000011101100000000",
+                "0000001111000000110",
+                "0000011000110001110",
+                "0000110000011011100",
+                "0001100000001111000",
+                "0011000011001110000",
+                "0011000111101110000",
+                "0110001100111100000",
+                "0110001100011100000",
+                "1100011000001110000",
+                "1100110001001110000",
+                "1100110011001110000",
+                "1100110110011100000",
+                "1100110011011100000",
+                "1100011011011100000",
+                "1100011001111000000",
+                "1100001100111000000",
+                "0110001100111000000",
+                "0110000111111000000",
+                "0011000011111000000",
+                "0001110000111000000",
+                "0000111100111000000",
+                "0000110111111000000",
+                "0000110011111000000",
+                "0000110000111000000",
+                "0000110000111000000",
+                "0000111000111000000",
+                "0001111001111000000",
+                "0001101111101100000",
+                "0011111111111110000",
+                "0011111100111100000"
+            ];
+
+            const SPRITE_BATSMAN_PULL = [
+                "00000000111100000000",
+                "00000001100110000000",
+                "00000001111111100000",
+                "00000011101100000000",
+                "00000001111000000000",
+                "00000011111110000000",
+                "11100111000111000000",
+                "11111110000011100000",
+                "01111111111111000000",
+                "00011111111110000000",
+                "00000110000110000000",
+                "00000110000111000000",
+                "00000110000011000000",
+                "00000110000011000000",
+                "00000111111111000000",
+                "00000111111111000000",
+                "00000111000111000000",
+                "00000110000011000000",
+                "00001110000011000000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001100000011100000",
+                "00001110000011100000",
+                "00011110000111100000",
+                "00011011001110110000",
+                "00111111001111110000",
+                "00111110000111100000"
+            ];
+
+            const SPRITE_BATSMAN_CUT = [
+                "0000001111000000000000",
+                "0000011001100000000000",
+                "0000011111111000000000",
+                "0000111011000000000000",
+                "0000011110000000000000",
+                "0000111111100000000000",
+                "0001110001110000000000",
+                "0001100000111000000000",
+                "0001100000011110000000",
+                "0001110000001111111110",
+                "0000111000000111111111",
+                "0000011111111111111110",
+                "0000011000011100000000",
+                "0000011000011000000000",
+                "0000011111111000000000",
+                "0000011111111000000000",
+                "0000011000111000000000",
+                "0000011000011000000000",
+                "0000111000011100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000110000001100000000",
+                "0000111000001110000000",
+                "0001111000011110000000",
+                "0001101100111011000000",
+                "0011111100111111000000",
+                "0011111000011110000000"
+            ];
+
+            const SPRITE_BATSMAN_LOFT = [
+                "00000011110000111000",
+                "00000110011001111000",
+                "00000111111111110000",
+                "00001110110011100000",
+                "00000111100111000000",
+                "00001111111110000000",
+                "00011100011110000000",
+                "00011000001110000000",
+                "00011000001110000000",
+                "00011100011100000000",
+                "00001111111000000000",
+                "00000111110000000000",
+                "00000110011000000000",
+                "00000110011000000000",
+                "00000111111000000000",
+                "00000111111000000000",
+                "00000110011100000000",
+                "00000110001100000000",
+                "00001110001110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001100000110000000",
+                "00001110000111000000",
+                "00011110001111000000",
+                "00011011011101100000",
+                "00111111011111100000",
+                "00111110001111000000"
+            ];
+
+            // ============================================================================
+            // 4. LOW-LEVEL 1-BIT PIXEL DRAWING PRIMITIVES
+            // ============================================================================
+            function clearScreen(invert = false) {
+                ctx.fillStyle = invert ? COLOR_FG : COLOR_BG;
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            function setPixel(x, y, color = COLOR_FG) {
+                const ix = Math.round(x);
+                const iy = Math.round(y);
+                if (ix < 0 || ix >= W || iy < 0 || iy >= H) return;
+                ctx.fillStyle = color;
+                ctx.fillRect(ix, iy, 1, 1);
+            }
+
+            function fillRect(x, y, w, h, color = COLOR_FG) {
+                ctx.fillStyle = color;
+                ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+            }
+
+            function drawLine(x0, y0, x1, y1, color = COLOR_FG, thickness = 1) {
+                x0 = Math.round(x0);
+                y0 = Math.round(y0);
+                x1 = Math.round(x1);
+                y1 = Math.round(y1);
+                const dx = Math.abs(x1 - x0);
+                const dy = Math.abs(y1 - y0);
+                const sx = (x0 < x1) ? 1 : -1;
+                const sy = (y0 < y1) ? 1 : -1;
+                let err = dx - dy;
+
+                ctx.fillStyle = color;
+                while (true) {
+                    ctx.fillRect(x0, y0, thickness, thickness);
+                    if (x0 === x1 && y0 === y1) break;
+                    const e2 = 2 * err;
+                    if (e2 > -dy) { err -= dy; x0 += sx; }
+                    if (e2 < dx) { err += dx; y0 += sy; }
+                }
+            }
+
+            function drawSprite(bitmap, x, y, color = COLOR_FG) {
+                const ix = Math.round(x);
+                const iy = Math.round(y);
+                ctx.fillStyle = color;
+                for (let r = 0; r < bitmap.length; r++) {
+                    const row = bitmap[r];
+                    for (let c = 0; c < row.length; c++) {
+                        if (row[c] === '1') {
+                            ctx.fillRect(ix + c, iy + r, 1, 1);
+                        }
+                    }
+                }
+            }
+
+            function drawLargeText(str, x, y, color = COLOR_BG) {
+                let curX = Math.round(x);
+                for (let i = 0; i < str.length; i++) {
+                    const ch = str[i];
+                    const glyph = LARGE_FONT[ch];
+                    if (glyph) {
+                        drawSprite(glyph, curX, y, color);
+                        curX += glyph[0].length + 1;
+                    } else {
+                        curX += 4;
+                    }
+                }
+            }
+
+            function drawMiniText(str, x, y, color = COLOR_FG, scale = 1) {
+                const upper = String(str).toUpperCase();
+                let curX = Math.round(x);
+                const iy = Math.round(y);
+                ctx.fillStyle = color;
+                for (let i = 0; i < upper.length; i++) {
+                    const glyph = MINI_FONT[upper[i]] || MINI_FONT[' '];
+                    for (let r = 0; r < glyph.length; r++) {
+                        for (let c = 0; c < glyph[r].length; c++) {
+                            if (glyph[r][c] === '1') {
+                                ctx.fillRect(curX + c * scale, iy + r * scale, scale, scale);
+                            }
+                        }
+                    }
+                    curX += (glyph[0].length + 1) * scale;
+                }
+            }
+
+            function drawCenteredMiniText(str, y, color = COLOR_FG, scale = 1) {
+                const width = String(str).length * 4 * scale - scale;
+                const x = Math.floor((W - width) / 2);
+                drawMiniText(str, x, y, color, scale);
+            }
+
+            // ============================================================================
+            // 5. GAME STATE & MATCH LOGIC (10 Wickets, Easy Pickings & Pre-Bowl Spot)
+            // ============================================================================
+            const SPEED_PRESETS = [
+                { label: "EASY", mult: 0.34, sweetWindow: 0.19, hitWindow: 0.36, autoBowlDelay: 72 },
+                { label: "NORM", mult: 0.54, sweetWindow: 0.12, hitWindow: 0.25, autoBowlDelay: 55 },
+                { label: "FAST", mult: 0.80, sweetWindow: 0.08, hitWindow: 0.18, autoBowlDelay: 42 }
+            ];
+
+            const MODES = [
+                { name: "2 OVR SLOG", overs: 2, wickets: 10, target: null, desc: "2 OVR - 10 WICKETS" },
+                { name: "5 OVR MATCH", overs: 5, wickets: 10, target: null, desc: "5 OVR - 10 WICKETS" },
+                { name: "CHASE 32 RUN", overs: 5, wickets: 10, target: 32, desc: "NEED 32 - 10 WKTS" },
+                { name: "10 OVR TEST", overs: 10, wickets: 10, target: null, desc: "10 OVR - 10 WICKETS" }
+            ];
+
+            let savedHi = 36;
+            try {
+                savedHi = parseInt(localStorage.getItem('nokia_cricket_hi') || '36', 10) || 36;
+            } catch (e) {}
+
+            const game = {
+                state: 'PLAYING', // Starts immediately in the exact screenshot view (6/1 in 0.2 overs)
+                modeIdx: 0,
+                speedIdx: 0,      // 0 = EASY (Gentle pace + huge hitting sweet spot!)
+                autoBowl: true,   // Automatically bowls after showing target spot for ~1.2s
+                runs: 6,          // Initialized to 6/1 in 0.2 overs just like the screenshot!
+                wickets: 1,
+                maxWickets: 10,   // Full 10 Wickets!
+                balls: 2,
+                maxBalls: 12,
+                target: null,
+                highScore: savedHi,
+
+                // Sub-phases: 'PRE_BOWL_AIM' -> 'RUNUP' -> 'BOWLING' -> 'OUTFIELD' -> 'BANNER'
+                phase: 'PRE_BOWL_AIM',
+                timer: 0,
+
+                // Bowler state
+                bowlerX: 71,
+                bowlerY: 38,
+                bowlerFrame: 'STAND',
+
+                // Batsman state (Movable across the crease!)
+                batsmanX: 40,     // Default 40 (bat is at x = 55). Can move from 18 to 72!
+                batsmanY: 79,
+                stepAnimTimer: 0,
+                batsmanPose: 'READY',
+                poseTimer: 0,
+                bailsBrokenBottom: false,
+
+                // Ball & Pre-Bowl Spot Preview state on Pitch
+                ball: {
+                    active: false,
+                    progress: 0,
+                    baseSpeed: 0.020,
+                    startX: 73,
+                    startY: 51,
+                    bounceProgress: 0.58,
+                    bounceX: 58,
+                    bounceY: 86,
+                    targetX: 56,
+                    swing: 0,
+                    spin: 0,
+                    x: 73,
+                    y: 51,
+                    z: 0,
+                    type: 'SLOT BALL',
+                    spotLabel: 'SLOT - SMASH 5!'
+                },
+
+                // Outfield Top-Down Radar Cutaway State
+                radar: {
+                    ballX: 60,
+                    ballY: 75,
+                    vx: 0,
+                    vy: 0,
+                    lofted: false,
+                    z: 0,
+                    vz: 0,
+                    plannedRuns: 0,
+                    plannedOutcome: '',
+                    fielders: [],
+                    batsmanRunProgress: 0
+                },
+
+                bannerText: '',
+                bannerSubText: '',
+                bannerInvert: false
+            };
+
+            function setKeyBadge(text) {
+                if (liveKeyBadge) liveKeyBadge.textContent = text;
+            }
+
+            // Plan the upcoming delivery BEFORE the bowler bowls so the user sees the target spot first!
+            function prepareNextDeliveryPlan() {
+                const deliveries = [
+                    { type: 'SLOT BALL', label: 'SLOT - SMASH 5!', bounceP: 0.65, bx: 57, spin: 0, swing: 0, spd: 0.020 },
+                    { type: 'FULL TOSS', label: 'FULL - LOFT 2/5', bounceP: 0.78, bx: 55, spin: 0, swing: 0, spd: 0.019 },
+                    { type: 'LEG STUMP', label: 'ON LEG - PULL 4', bounceP: 0.58, bx: 48, spin: -2, swing: 0, spd: 0.020 },
+                    { type: 'OFF CUTTER', label: 'WIDE OFF - CUT 6', bounceP: 0.56, bx: 67, spin: 2, swing: 0, spd: 0.020 },
+                    { type: 'OFF SPIN', label: 'SPIN IN - HIT 5', bounceP: 0.57, bx: 65, spin: -6, swing: 0, spd: 0.018 },
+                    { type: 'LEG SPIN', label: 'SPIN OUT - CUT 6', bounceP: 0.57, bx: 53, spin: 7, swing: 0, spd: 0.018 },
+                    { type: 'SHORT BALL', label: 'SHORT - HOOK 4', bounceP: 0.45, bx: 57, spin: 0, swing: 0, spd: 0.021 }
+                ];
+
+                const pick = deliveries[Math.floor(Math.random() * deliveries.length)];
+                const jitter = (Math.random() * 4 - 2);
+
+                game.ball.type = pick.type;
+                game.ball.spotLabel = pick.label;
+                game.ball.startX = 73;
+                game.ball.startY = 51;
+                game.ball.progress = 0;
+                game.ball.baseSpeed = pick.spd;
+                game.ball.bounceProgress = pick.bounceP;
+                game.ball.bounceX = Math.round(pick.bx + jitter);
+                game.ball.bounceY = Math.round(51 + pick.bounceP * (112 - 51));
+                game.ball.spin = pick.spin;
+                game.ball.swing = pick.swing;
+                game.ball.targetX = Math.round(game.ball.bounceX + pick.spin);
+            }
+
+            // Move Batsman Visibly Left or Right across the crease
+            function moveBatsman(dir) {
+                const stepSize = 6;
+                game.batsmanX = Math.max(18, Math.min(74, game.batsmanX + dir * stepSize));
+                game.stepAnimTimer = 12;
+                sound.tone(740, 18);
+                setKeyBadge(dir < 0 ? 'STEP LEFT' : 'STEP RIGHT');
+            }
+
+            // Reset Match with selected Mode
+            function startNewMatch(modeIndex = game.modeIdx) {
+                game.modeIdx = modeIndex;
+                const m = MODES[modeIndex];
+                game.runs = 0;
+                game.wickets = 0;
+                game.balls = 0;
+                game.maxWickets = 10;
+                game.maxBalls = m.overs * 6;
+                game.target = m.target;
+                game.batsmanX = 40;
+                game.state = 'PLAYING';
+                resetDelivery();
+                setKeyBadge('NEW MATCH');
+            }
+
+            function resetDelivery() {
+                game.phase = 'PRE_BOWL_AIM';
+                game.timer = 0;
+                game.bowlerX = 71;
+                game.bowlerY = 38;
+                game.bowlerFrame = 'STAND';
+                game.batsmanY = 79;
+                game.batsmanPose = 'READY';
+                game.bailsBrokenBottom = false;
+                game.ball.active = false;
+                prepareNextDeliveryPlan();
+            }
+
+            function startBowlingDelivery() {
+                if (game.phase !== 'PRE_BOWL_AIM') return;
+                game.phase = 'RUNUP';
+                game.timer = 0;
+                game.bowlerY = 33;
+                game.batsmanPose = 'READY';
+                game.bailsBrokenBottom = false;
+                setKeyBadge('BOWLING...');
+            }
+
+            // Batsman Swings Bat or Moves Crease
+            function handleGameplayInput(shotKey) {
+                if (game.state === 'MENU') {
+                    if (shotKey === '2' || shotKey === '4') {
+                        game.modeIdx = (game.modeIdx + MODES.length - 1) % MODES.length;
+                        sound.keyClick();
+                    } else if (shotKey === '8' || shotKey === '6') {
+                        game.modeIdx = (game.modeIdx + 1) % MODES.length;
+                        sound.keyClick();
+                    } else if (shotKey === '5') {
+                        sound.keyClick();
+                        startNewMatch(game.modeIdx);
+                    }
+                    return;
+                }
+
+                if (game.state === 'INNINGS_OVER') {
+                    sound.keyClick();
+                    startNewMatch(game.modeIdx);
+                    return;
+                }
+
+                // Skip banner quickly if pressed after a short moment
+                if (game.phase === 'BANNER') {
+                    if (game.timer > 12) {
+                        sound.keyClick();
+                        advanceNextBallOrEnd();
+                    }
+                    return;
+                }
+
+                // During PRE_BOWL_AIM or RUNUP:
+                // 4/1/7 moves Left, 6/3/9 moves Right, 5/2/8 bowls immediately!
+                if (game.phase === 'PRE_BOWL_AIM' || game.phase === 'RUNUP') {
+                    if (['4', '1', '7'].includes(shotKey)) {
+                        moveBatsman(-1);
+                        return;
+                    }
+                    if (['6', '3', '9'].includes(shotKey)) {
+                        moveBatsman(1);
+                        return;
+                    }
+                    if (game.phase === 'PRE_BOWL_AIM') {
+                        sound.keyClick();
+                        startBowlingDelivery();
+                    }
+                    return;
+                }
+
+                if (game.phase !== 'BOWLING') return;
+
+                // If ball is still early in flight (progress < 0.46), pressing 4/6 steps the batsman Left/Right
+                // so the player can line up with the pitch target spot!
+                if (game.ball.progress < 0.46) {
+                    if (['4', '1', '7'].includes(shotKey)) {
+                        moveBatsman(-1);
+                        return;
+                    }
+                    if (['6', '3', '9'].includes(shotKey)) {
+                        moveBatsman(1);
+                        return;
+                    }
+                }
+
+                // Now execute Bat Swing!
+                // Even if player pressed slightly early, auto-align batsman closer to ball for "Easy Pickings" feel
+                const targetBatX = Math.max(18, Math.min(72, Math.round(game.ball.x - 15)));
+                game.batsmanX = Math.round(game.batsmanX * 0.45 + targetBatX * 0.55);
+
+                if (['1', '4', '7'].includes(shotKey)) {
+                    game.batsmanPose = 'PULL';
+                    setKeyBadge('PULL SHOT!');
+                } else if (['3', '6', '9'].includes(shotKey)) {
+                    game.batsmanPose = 'CUT';
+                    setKeyBadge('CUT SHOT!');
+                } else {
+                    game.batsmanPose = 'LOFT';
+                    setKeyBadge('SMASH HIT!');
+                }
+                game.poseTimer = 24;
+
+                const preset = SPEED_PRESETS[game.speedIdx];
+                const p = game.ball.progress;
+                const idealP = 0.86;
+                const absDiff = Math.abs(p - idealP);
+
+                // In EASY mode, any swing once the ball has bounced (p >= 0.44) connects!
+                if (absDiff > preset.hitWindow && !(game.speedIdx === 0 && p >= 0.44 && p <= 1.03)) {
+                    sound.keyClick();
+                    return;
+                }
+
+                // Determine shot direction & power
+                let angleDeg = 0; // 0 = straight down the ground
+                let isLofted = (shotKey === '2' || shotKey === '1' || shotKey === '3' || shotKey === '5');
+
+                if (shotKey === '4') angleDeg = -75 + (Math.random() * 24 - 12);
+                else if (shotKey === '1') angleDeg = -120 + (Math.random() * 20 - 10);
+                else if (shotKey === '7') angleDeg = -45 + (Math.random() * 20 - 10);
+                else if (shotKey === '6') angleDeg = 75 + (Math.random() * 24 - 12);
+                else if (shotKey === '3') angleDeg = 115 + (Math.random() * 20 - 10);
+                else if (shotKey === '9') angleDeg = 45 + (Math.random() * 20 - 10);
+                else if (shotKey === '2') {
+                    angleDeg = (Math.random() * 44 - 22);
+                    isLofted = true;
+                } else if (shotKey === '8') {
+                    angleDeg = (Math.random() * 50 - 25);
+                    isLofted = false;
+                } else {
+                    const lineOffset = game.ball.x - (game.batsmanX + 15);
+                    angleDeg = lineOffset * 4 + (Math.random() * 46 - 23);
+                    isLofted = true;
+                }
+
+                if (shotKey === '8') {
+                    sound.batHit(1);
+                    launchOutfieldRadar(angleDeg, 1.25, false, 1, '1 RUN');
+                } else if (absDiff <= preset.sweetWindow) {
+                    // SWEET SPOT! Big 6 or Blazing 4!
+                    sound.batHit(2);
+                    if (isLofted && Math.random() > 0.25) {
+                        launchOutfieldRadar(angleDeg, 2.45, true, 6, 'SIX!');
+                    } else {
+                        launchOutfieldRadar(angleDeg, 2.2, false, 4, 'FOUR!');
+                    }
+                } else if (absDiff <= preset.hitWindow * 0.85 || game.speedIdx === 0) {
+                    // GOOD TIMING: 4 or 2 runs
+                    sound.batHit(1);
+                    if (Math.random() > 0.35) {
+                        launchOutfieldRadar(angleDeg, 2.15, false, 4, 'FOUR!');
+                    } else {
+                        launchOutfieldRadar(angleDeg, 1.55, false, 2, '2 RUNS');
+                    }
+                } else {
+                    // Edge of timing window
+                    sound.batHit(1);
+                    if (Math.random() < 0.25) {
+                        launchOutfieldRadar(angleDeg + (Math.random() * 40 - 20), 1.3, true, -1, 'CAUGHT!');
+                    } else {
+                        launchOutfieldRadar(angleDeg, 1.3, false, 1, '1 RUN');
+                    }
+                }
+            }
+
+            function launchOutfieldRadar(angleDeg, speed, lofted, plannedRuns, label) {
+                game.phase = 'OUTFIELD';
+                game.timer = 0;
+
+                const rad = (angleDeg - 90) * (Math.PI / 180);
+                game.radar.ballX = 60;
+                game.radar.ballY = 82;
+                game.radar.vx = Math.cos(rad) * speed;
+                game.radar.vy = Math.sin(rad) * speed;
+                game.radar.lofted = lofted;
+                game.radar.z = lofted ? 2 : 0;
+                game.radar.vz = lofted ? 1.8 : 0;
+                game.radar.plannedRuns = plannedRuns;
+                game.radar.plannedOutcome = label;
+                game.radar.batsmanRunProgress = 0;
+
+                const fielderAngles = [-150, -105, -60, -25, 25, 65, 110, 155, 180];
+                game.radar.fielders = fielderAngles.map((a, idx) => {
+                    const frad = (a - 90) * (Math.PI / 180);
+                    const dist = (idx % 2 === 0) ? 26 : 42;
+                    return {
+                        x: 60 + Math.cos(frad) * dist,
+                        y: 76 + Math.sin(frad) * dist * 1.1
+                    };
+                });
+
+                if (plannedRuns === -1) {
+                    const catchX = 60 + game.radar.vx * 26;
+                    const catchY = 82 + game.radar.vy * 26;
+                    game.radar.fielders[0].x = catchX + 5;
+                    game.radar.fielders[0].y = catchY + 4;
+                }
+            }
+
+            function triggerBanner(title, sub, isWicket = false) {
+                game.phase = 'BANNER';
+                game.timer = 0;
+                game.bannerText = title;
+                game.bannerSubText = sub;
+                game.bannerInvert = isWicket;
+                setKeyBadge(title);
+
+                game.balls++;
+                if (isWicket) {
+                    game.wickets++;
+                    sound.wicketOut();
+                } else if (title === 'SIX!') {
+                    sound.boundarySix();
+                } else if (title === 'FOUR!') {
+                    sound.boundaryFour();
+                } else {
+                    sound.runBeep();
+                }
+
+                if (game.runs > game.highScore) {
+                    game.highScore = game.runs;
+                    try {
+                        localStorage.setItem('nokia_cricket_hi', String(game.highScore));
+                    } catch (e) {}
+                }
+            }
+
+            function advanceNextBallOrEnd() {
+                if (game.target && game.runs >= game.target) {
+                    game.state = 'INNINGS_OVER';
+                    game.bannerText = 'YOU WIN!';
+                    game.bannerSubText = `CHASED ${game.target}`;
+                    sound.winFanfare();
+                    return;
+                }
+                if (game.wickets >= game.maxWickets) {
+                    game.state = 'INNINGS_OVER';
+                    game.bannerText = 'ALL OUT!';
+                    game.bannerSubText = `SCORE ${game.runs}/${game.wickets}`;
+                    return;
+                }
+                if (game.balls >= game.maxBalls) {
+                    game.state = 'INNINGS_OVER';
+                    if (game.target && game.runs < game.target - 1) {
+                        game.bannerText = 'LOST MATCH';
+                        game.bannerSubText = `NEEDED ${game.target}`;
+                    } else if (game.target && game.runs === game.target - 1) {
+                        game.bannerText = 'MATCH TIED';
+                        game.bannerSubText = `SCORE ${game.runs}`;
+                    } else {
+                        game.bannerText = 'INNINGS END';
+                        game.bannerSubText = `TOTAL ${game.runs}/${game.wickets}`;
+                        sound.winFanfare();
+                    }
+                    return;
+                }
+                resetDelivery();
+            }
+
+            // ============================================================================
+            // 6. UPDATE LOOP (60 FPS)
+            // ============================================================================
+            function updateGame() {
+                if (game.state !== 'PLAYING') return;
+
+                game.timer++;
+                const preset = SPEED_PRESETS[game.speedIdx];
+
+                if (game.stepAnimTimer > 0) {
+                    game.stepAnimTimer--;
+                }
+
+                if (game.batsmanPose === 'PULL' || game.batsmanPose === 'CUT' || game.batsmanPose === 'LOFT') {
+                    game.poseTimer--;
+                    if (game.poseTimer <= 0) game.batsmanPose = 'READY';
+                } else if (game.stepAnimTimer > 0) {
+                    game.batsmanPose = 'STEP';
+                } else if (game.phase === 'BOWLING' && game.ball.progress > 0.42 && game.ball.progress < 0.96) {
+                    game.batsmanPose = 'BACKLIFT';
+                } else {
+                    game.batsmanPose = 'READY';
+                }
+
+                // 0. PRE-BOWL AIM PHASE: Show target spot first, then auto-bowl if enabled
+                if (game.phase === 'PRE_BOWL_AIM') {
+                    if (game.autoBowl && game.timer >= preset.autoBowlDelay) {
+                        startBowlingDelivery();
+                    }
+                }
+                // 1. Bowler Run-up Phase
+                else if (game.phase === 'RUNUP') {
+                    if (game.timer % 5 === 0) {
+                        game.bowlerY += 1;
+                        game.bowlerFrame = (game.bowlerFrame === 'STAND') ? 'RUN' : 'STAND';
+                    }
+                    if (game.timer >= 24) {
+                        game.bowlerFrame = 'BOWL';
+                        sound.bowlRelease();
+                        game.phase = 'BOWLING';
+                        game.ball.active = true;
+                        game.ball.progress = 0;
+                    }
+                }
+                // 2. Ball Traveling Down Perspective Pitch
+                else if (game.phase === 'BOWLING') {
+                    const b = game.ball;
+                    const prevP = b.progress;
+                    const actualSpeed = b.baseSpeed * preset.mult;
+                    b.progress += actualSpeed;
+
+                    if (prevP < b.bounceProgress && b.progress >= b.bounceProgress) {
+                        sound.ballBounce();
+                    }
+
+                    b.y = 51 + b.progress * (112 - 51);
+
+                    if (b.progress <= b.bounceProgress) {
+                        const t = b.progress / b.bounceProgress;
+                        b.x = b.startX + (b.bounceX - b.startX) * t + Math.sin(t * Math.PI) * (b.swing * 15);
+                        b.z = (1 - t) * 9 + Math.sin(t * Math.PI) * 3;
+                    } else {
+                        const t = (b.progress - b.bounceProgress) / (1.0 - b.bounceProgress);
+                        b.x = b.bounceX + (b.targetX - b.bounceX) * t;
+                        const bouncePeak = (b.type === 'SHORT BALL') ? 10 : (b.type === 'FULL TOSS' ? 2 : 6);
+                        b.z = Math.abs(Math.sin(t * Math.PI * 0.85)) * bouncePeak;
+                    }
+
+                    // Did ball pass the batsman without being hit?
+                    if (b.progress >= 1.04) {
+                        b.active = false;
+                        const blockedByPads = Math.abs(b.x - (game.batsmanX + 10)) < 7;
+                        if (!blockedByPads && b.x >= 59 && b.x <= 68 && b.type !== 'SHORT BALL') {
+                            game.bailsBrokenBottom = true;
+                            triggerBanner('BOWLED!', 'WICKET DOWN', true);
+                        } else {
+                            triggerBanner('DOT BALL', b.spotLabel, false);
+                        }
+                    }
+                }
+                // 3. Top-Down Outfield Radar Cutaway
+                else if (game.phase === 'OUTFIELD') {
+                    const r = game.radar;
+                    r.ballX += r.vx;
+                    r.ballY += r.vy;
+
+                    if (!r.lofted) {
+                        r.vx *= 0.985;
+                        r.vy *= 0.985;
+                    } else {
+                        r.z += r.vz;
+                        r.vz -= 0.065;
+                        if (r.z < 0) r.z = 0;
+                    }
+
+                    let closestIdx = 0;
+                    let minDist = 9999;
+                    r.fielders.forEach((f, idx) => {
+                        const d = Math.hypot(f.x - r.ballX, f.y - r.ballY);
+                        if (d < minDist) { minDist = d; closestIdx = idx; }
+                    });
+
+                    const cf = r.fielders[closestIdx];
+                    const angleToBall = Math.atan2(r.ballY - cf.y, r.ballX - cf.x);
+                    cf.x += Math.cos(angleToBall) * 1.15;
+                    cf.y += Math.sin(angleToBall) * 1.15;
+
+                    r.batsmanRunProgress = (r.batsmanRunProgress + 0.06) % 1;
+
+                    const normDist = Math.hypot((r.ballX - 60) / 51, (r.ballY - 76) / 60);
+
+                    if (normDist >= 1.0 && (r.plannedRuns === 4 || r.plannedRuns === 6)) {
+                        game.runs += r.plannedRuns;
+                        triggerBanner(
+                            r.plannedRuns === 6 ? 'SIX!' : 'FOUR!',
+                            r.plannedRuns === 6 ? 'MAXIMUM HIT' : 'BOUNDARY 4',
+                            false
+                        );
+                    } else if (r.plannedRuns === -1 && (minDist < 4.5 || game.timer > 36)) {
+                        triggerBanner('HOWZAT!', 'CAUGHT OUT', true);
+                    } else if (r.plannedRuns >= 0 && r.plannedRuns < 4 && (minDist < 3.5 || game.timer > 42)) {
+                        game.runs += r.plannedRuns;
+                        triggerBanner(
+                            r.plannedRuns === 0 ? 'NO RUN' : `${r.plannedRuns} RUN${r.plannedRuns > 1 ? 'S' : ''}`,
+                            `SCORE ${game.runs}/${game.wickets}`,
+                            false
+                        );
+                    }
+                }
+                // 4. Retro Result Banner Timer
+                else if (game.phase === 'BANNER') {
+                    if (game.timer > 56) {
+                        advanceNextBallOrEnd();
+                    }
+                }
+            }
+
+            // ============================================================================
+            // 7. RENDER FUNCTIONS (EXACT SCREENSHOT HUD, PITCH, SPRITES & RADAR)
+            // ============================================================================
+
+            /**
+             * Renders the exact Top-Left Dark Scoreboard Box (`#112306` background, `#8eb828` pixels)
+             * matching the uploaded screenshot (`6/1` and `0.2`)
+             */
+            function renderTopLeftHUD() {
+                // Dark Scoreboard Rectangle at top-left (x=0..52, y=6..45)
+                fillRect(0, 6, 53, 39, COLOR_FG);
+
+                // Row 1: Ball Icon + "- 0 - : --" (or Target Score if chasing)
+                drawSprite(HUD_ICON_BALL, 2, 8, COLOR_BG);
+                fillRect(11, 11, 4, 2, COLOR_BG);
+                drawSprite(HUD_ICON_BALL, 17, 8, COLOR_BG);
+
+                if (game.target) {
+                    drawMiniText(`T:${game.target}`, 27, 9, COLOR_BG, 1);
+                } else {
+                    // Exact "-- : --" pattern from the screenshot
+                    fillRect(27, 11, 6, 2, COLOR_BG);
+                    setPixel(35, 9, COLOR_BG);
+                    setPixel(35, 13, COLOR_BG);
+                    fillRect(39, 11, 5, 2, COLOR_BG);
+                    fillRect(46, 11, 5, 2, COLOR_BG);
+                }
+
+                // Row 2: Bat/Crease Icon on left + Large Score "6/1" on right
+                drawSprite(HUD_ICON_BAT, 2, 19, COLOR_BG);
+                const scoreStr = `${game.runs}/${game.wickets}`;
+                const scoreX = Math.max(12, 50 - scoreStr.length * 6);
+                drawLargeText(scoreStr, scoreX, 19, COLOR_BG);
+
+                // Horizontal Divider Line inside HUD box
+                fillRect(2, 30, 49, 2, COLOR_BG);
+
+                // Row 3: Overs Bowled "0.2"
+                const completedOvers = Math.floor(game.balls / 6);
+                const ballsInOver = game.balls % 6;
+                const overStr = `${completedOvers}.${ballsInOver}`;
+                const overX = Math.max(12, 50 - overStr.length * 6);
+                drawLargeText(overStr, overX, 34, COLOR_BG);
+            }
+
+            /**
+             * Renders the Perspective Trapezoidal Pitch, Creases, Stumps, Bowler,
+             * Pre-Bowl Target Crosshair `[+]`, Traveling Ball, and Movable Batsman
+             */
+            function renderPitchView() {
+                // 1. Top Bowling & Popping Crease Box
+                fillRect(35, 55, 57, 2, COLOR_FG);
+                fillRect(34, 59, 59, 2, COLOR_FG);
+                fillRect(35, 55, 2, 5, COLOR_FG);
+                fillRect(90, 55, 2, 5, COLOR_FG);
+                fillRect(44, 56, 2, 4, COLOR_FG);
+                fillRect(83, 56, 2, 4, COLOR_FG);
+
+                // 2. Stepped Perspective Pitch Side Boundaries
+                drawLine(34, 60, 10, 111, COLOR_FG, 2);
+                drawLine(91, 60, 117, 119, COLOR_FG, 2);
+
+                // 3. Bottom Striker's Popping & Batting Crease
+                fillRect(9, 112, 109, 2, COLOR_FG);
+                fillRect(7, 119, 112, 2, COLOR_FG);
+                drawLine(10, 112, 7, 119, COLOR_FG, 2);
+                drawLine(25, 112, 23, 119, COLOR_FG, 2);
+                drawLine(99, 112, 101, 119, COLOR_FG, 2);
+
+                // 4. Top Stumps (Non-striker's end: 3 vertical bars + bails)
+                fillRect(62, 50, 2, 9, COLOR_FG);
+                fillRect(65, 50, 2, 9, COLOR_FG);
+                fillRect(68, 50, 2, 9, COLOR_FG);
+                fillRect(62, 50, 8, 1, COLOR_FG);
+
+                // 5. Bowler Sprite (Top-Right of top stumps)
+                let bowlerSpr = SPRITE_BOWLER_STAND;
+                if (game.bowlerFrame === 'BOWL') bowlerSpr = SPRITE_BOWLER_BOWL;
+                else if (game.bowlerFrame === 'RUN') bowlerSpr = SPRITE_BOWLER_RUN;
+                drawSprite(bowlerSpr, game.bowlerX, game.bowlerY, COLOR_FG);
+
+                // 6. PRE-BOWL & IN-FLIGHT PITCH BOUNCE TARGET MARKER [+]
+                if (game.phase === 'PRE_BOWL_AIM' || game.phase === 'RUNUP' || game.phase === 'BOWLING') {
+                    const bx = Math.round(game.ball.bounceX);
+                    const by = Math.round(game.ball.bounceY);
+                    const tx = Math.round(game.ball.targetX);
+                    const blinkFast = Math.floor(Date.now() / 150) % 2 === 0;
+
+                    // Dotted trajectory line from bounce spot to batting crease
+                    for (let step = 0; step <= 6; step += 2) {
+                        const t = step / 6;
+                        const px = Math.round(bx + (tx - bx) * t);
+                        const py = Math.round(by + (111 - by) * t);
+                        setPixel(px, py, COLOR_FG);
+                    }
+
+                    // Blinking Target Box around Pitch Spot
+                    if (blinkFast || game.phase === 'BOWLING') {
+                        fillRect(bx - 4, by - 3, 3, 1, COLOR_FG);
+                        fillRect(bx + 2, by - 3, 3, 1, COLOR_FG);
+                        fillRect(bx - 4, by + 3, 3, 1, COLOR_FG);
+                        fillRect(bx + 2, by + 3, 3, 1, COLOR_FG);
+                        fillRect(bx - 4, by - 3, 1, 3, COLOR_FG);
+                        fillRect(bx + 4, by - 3, 1, 3, COLOR_FG);
+                        fillRect(bx - 4, by + 1, 1, 3, COLOR_FG);
+                        fillRect(bx + 4, by + 1, 1, 3, COLOR_FG);
+                    }
+                    // Bullseye cross [+]
+                    setPixel(bx, by, COLOR_FG);
+                    setPixel(bx - 1, by, COLOR_FG);
+                    setPixel(bx + 1, by, COLOR_FG);
+                    setPixel(bx, by - 1, COLOR_FG);
+                    setPixel(bx, by + 1, COLOR_FG);
+                }
+
+                // 7. Traveling Ball + Ground Shadow
+                if (game.ball.active) {
+                    fillRect(game.ball.x - 1, game.ball.y, 3, 2, COLOR_FG);
+                    const ballDrawY = game.ball.y - game.ball.z;
+                    fillRect(game.ball.x - 2, ballDrawY - 2, 5, 5, COLOR_FG);
+                    setPixel(game.ball.x - 1, ballDrawY - 1, COLOR_BG);
+                }
+
+                // 8. Batsman Sprite (Movable across bottom crease + Walking/Backlift/Swing frames)
+                let batSpr = SPRITE_BATSMAN_READY;
+                if (game.batsmanPose === 'STEP') batSpr = SPRITE_BATSMAN_STEP;
+                else if (game.batsmanPose === 'BACKLIFT') batSpr = SPRITE_BATSMAN_BACKLIFT;
+                else if (game.batsmanPose === 'PULL') batSpr = SPRITE_BATSMAN_PULL;
+                else if (game.batsmanPose === 'CUT') batSpr = SPRITE_BATSMAN_CUT;
+                else if (game.batsmanPose === 'LOFT') batSpr = SPRITE_BATSMAN_LOFT;
+
+                drawSprite(batSpr, game.batsmanX, game.batsmanY, COLOR_FG);
+
+                // Movement arrows (< >) beside batsman feet during PRE_BOWL_AIM / RUNUP
+                if (game.phase === 'PRE_BOWL_AIM' || game.phase === 'RUNUP') {
+                    const arrowY = 115;
+                    setPixel(game.batsmanX - 3, arrowY, COLOR_FG);
+                    setPixel(game.batsmanX - 2, arrowY - 1, COLOR_FG);
+                    setPixel(game.batsmanX - 2, arrowY + 1, COLOR_FG);
+
+                    const rightEdge = game.batsmanX + 20;
+                    setPixel(rightEdge + 2, arrowY, COLOR_FG);
+                    setPixel(rightEdge + 1, arrowY - 1, COLOR_FG);
+                    setPixel(rightEdge + 1, arrowY + 1, COLOR_FG);
+                }
+
+                // 9. Bottom Stumps (Striker's end: 3 vertical bars + bails)
+                if (!game.bailsBrokenBottom) {
+                    fillRect(60, 105, 2, 9, COLOR_FG);
+                    fillRect(63, 105, 2, 9, COLOR_FG);
+                    fillRect(66, 105, 2, 9, COLOR_FG);
+                    fillRect(61, 104, 6, 1, COLOR_FG);
+                } else {
+                    fillRect(60, 105, 2, 9, COLOR_FG);
+                    drawLine(63, 113, 66, 106, COLOR_FG, 2);
+                    drawLine(66, 113, 71, 107, COLOR_FG, 2);
+                    fillRect(58, 100, 3, 1, COLOR_FG);
+                    fillRect(68, 99, 3, 1, COLOR_FG);
+                }
+            }
+
+            /**
+             * Renders the Bottom LCD Spot Preview Callout & "HIT NOW!" Timing Bar (y = 123..149)
+             */
+            function renderBottomTimingAndSpotHUD() {
+                if (game.phase === 'PRE_BOWL_AIM' || game.phase === 'RUNUP') {
+                    drawCenteredMiniText(game.ball.spotLabel, 125, COLOR_FG, 1);
+                    drawCenteredMiniText("4/6 STEP - 5 BOWL", 137, COLOR_FG, 1);
+                } else if (game.phase === 'BOWLING') {
+                    const barX = 12;
+                    const barY = 125;
+                    const barW = 96;
+                    const barH = 7;
+
+                    // Outer frame
+                    fillRect(barX, barY, barW, 1, COLOR_FG);
+                    fillRect(barX, barY + barH - 1, barW, 1, COLOR_FG);
+                    fillRect(barX, barY, 1, barH, COLOR_FG);
+                    fillRect(barX + barW - 1, barY, 1, barH, COLOR_FG);
+
+                    // Sweet-spot Hit Zone bracket
+                    const sweetStart = barX + Math.round(barW * 0.65);
+                    const sweetW = Math.round(barW * 0.28);
+                    fillRect(sweetStart, barY - 2, sweetW, 2, COLOR_FG);
+                    fillRect(sweetStart, barY + barH, sweetW, 2, COLOR_FG);
+
+                    // Moving ball progress bar
+                    const clampedP = Math.min(1, Math.max(0, game.ball.progress));
+                    const fillW = Math.round((barW - 4) * clampedP);
+                    fillRect(barX + 2, barY + 2, fillW, barH - 4, COLOR_FG);
+
+                    const inHitZone = (game.ball.progress >= 0.52 && game.ball.progress <= 0.99);
+                    if (inHitZone) {
+                        fillRect(16, 135, 88, 11, COLOR_FG);
+                        drawCenteredMiniText("HIT NOW! 4 / 5 / 6", 138, COLOR_BG, 1);
+                    } else {
+                        drawCenteredMiniText(game.ball.spotLabel, 138, COLOR_FG, 1);
+                    }
+                }
+            }
+
+            /**
+             * Authentic Nokia Top-Down Oval Outfield Radar Cutaway
+             */
+            function renderOutfieldRadar() {
+                for (let deg = 0; deg < 360; deg += 3) {
+                    const rad = deg * (Math.PI / 180);
+                    const bx = 60 + Math.cos(rad) * 52;
+                    const by = 78 + Math.sin(rad) * 61;
+                    fillRect(bx, by, 2, 2, COLOR_FG);
+                }
+
+                for (let deg = 0; deg < 360; deg += 12) {
+                    const rad = deg * (Math.PI / 180);
+                    const ix = 60 + Math.cos(rad) * 24;
+                    const iy = 78 + Math.sin(rad) * 28;
+                    setPixel(ix, iy, COLOR_FG);
+                }
+
+                fillRect(57, 68, 6, 20, COLOR_FG);
+                fillRect(58, 69, 4, 18, COLOR_BG);
+
+                const runY1 = 70 + game.radar.batsmanRunProgress * 15;
+                const runY2 = 85 - game.radar.batsmanRunProgress * 15;
+                fillRect(59, runY1, 2, 2, COLOR_FG);
+                fillRect(59, runY2, 2, 2, COLOR_FG);
+
+                game.radar.fielders.forEach(f => {
+                    fillRect(f.x - 1, f.y - 1, 3, 3, COLOR_FG);
+                    setPixel(f.x, f.y - 2, COLOR_FG);
+                });
+
+                const bx = game.radar.ballX;
+                const by = game.radar.ballY;
+                fillRect(bx - 1, by - 1, 2, 2, COLOR_FG);
+                const bHeight = game.radar.lofted ? game.radar.z : 0;
+                fillRect(bx - 2, by - 2 - bHeight, 4, 4, COLOR_FG);
+                fillRect(bx - 1, by - 1 - bHeight, 2, 2, COLOR_BG);
+            }
+
+            function renderRetroBanner(mainText, subText, invert = false) {
+                const boxX = 12;
+                const boxY = 64;
+                const boxW = 96;
+                const boxH = 34;
+
+                fillRect(boxX - 2, boxY - 2, boxW + 4, boxH + 4, COLOR_BG);
+                fillRect(boxX, boxY, boxW, boxH, invert ? COLOR_FG : COLOR_BG);
+                fillRect(boxX, boxY, boxW, 2, COLOR_FG);
+                fillRect(boxX, boxY + boxH - 2, boxW, 2, COLOR_FG);
+                fillRect(boxX, boxY, 2, boxH, COLOR_FG);
+                fillRect(boxX + boxW - 2, boxY, 2, boxH, COLOR_FG);
+
+                const textColor = invert ? COLOR_BG : COLOR_FG;
+                drawCenteredMiniText(mainText, boxY + 7, textColor, 2);
+                if (subText) {
+                    drawCenteredMiniText(subText, boxY + 22, textColor, 1);
+                }
+            }
+
+            function renderMenuScreen() {
+                fillRect(6, 8, 108, 22, COLOR_FG);
+                drawCenteredMiniText("CRICKET CUP", 12, COLOR_BG, 2);
+
+                drawCenteredMiniText(`HI-SCORE: ${game.highScore}`, 35, COLOR_FG, 1);
+                fillRect(10, 43, 100, 1, COLOR_FG);
+
+                MODES.forEach((m, idx) => {
+                    const y = 50 + idx * 18;
+                    const selected = (idx === game.modeIdx);
+                    if (selected) {
+                        fillRect(8, y - 2, 104, 15, COLOR_FG);
+                        drawMiniText(`>${m.name}`, 12, y + 3, COLOR_BG, 1);
+                    } else {
+                        drawMiniText(` ${m.name}`, 12, y + 3, COLOR_FG, 1);
+                    }
+                });
+
+                fillRect(10, 124, 100, 1, COLOR_FG);
+                drawCenteredMiniText(MODES[game.modeIdx].desc, 129, COLOR_FG, 1);
+                drawCenteredMiniText("PRESS 5 TO START", 139, COLOR_FG, 1);
+            }
+
+            function render() {
+                clearScreen(false);
+
+                if (game.state === 'MENU') {
+                    renderMenuScreen();
+                    return;
+                }
+
+                if (game.state === 'INNINGS_OVER') {
+                    renderPitchView();
+                    renderTopLeftHUD();
+                    renderRetroBanner(game.bannerText, game.bannerSubText, true);
+                    return;
+                }
+
+                if (game.phase === 'OUTFIELD') {
+                    renderOutfieldRadar();
+                    renderTopLeftHUD();
+                    return;
+                }
+
+                renderPitchView();
+                renderTopLeftHUD();
+                renderBottomTimingAndSpotHUD();
+
+                if (game.phase === 'BANNER') {
+                    renderRetroBanner(game.bannerText, game.bannerSubText, game.bannerInvert);
+                }
+            }
+
+            // ============================================================================
+            // 8. UNIFIED INPUT HANDLERS (BUTTONS, KEYBOARD & SCREEN TAP)
+            // ============================================================================
+            function triggerKeyAction(key) {
+                sound.init();
+
+                // Highlight all matching buttons on screen
+                document.querySelectorAll(`[data-key="${key}"]`).forEach(btn => {
+                    btn.classList.add('active-press');
+                    setTimeout(() => btn.classList.remove('active-press'), 120);
+                });
+
+                if (key === '#') {
+                    toggleMute();
+                    return;
+                }
+                if (key === '*' || key === 'menu') {
+                    sound.keyClick();
+                    game.state = (game.state === 'MENU') ? 'PLAYING' : 'MENU';
+                    setKeyBadge(game.state === 'MENU' ? 'MENU' : 'PLAY');
+                    return;
+                }
+                if (key === '0') {
+                    sound.keyClick();
+                    startNewMatch(game.modeIdx);
+                    return;
+                }
+
+                handleGameplayInput(key);
+            }
+
+            document.querySelectorAll('[data-key]').forEach(btn => {
+                btn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    triggerKeyAction(btn.getAttribute('data-key'));
+                });
+            });
+
+            // Direct tap on LCD screen
+            const screenContainer = document.getElementById('screen-container');
+            screenContainer.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                const rect = screenContainer.getBoundingClientRect();
+                const relX = (e.clientX - rect.left) / rect.width;
+                const relY = (e.clientY - rect.top) / rect.height;
+
+                // Top-left HUD box opens Mode Menu
+                if (relX < 0.44 && relY < 0.32) {
+                    triggerKeyAction('menu');
+                    return;
+                }
+
+                if (relX < 0.34) triggerKeyAction('4');      // Left third = Move Left / Pull
+                else if (relX > 0.66) triggerKeyAction('6'); // Right third = Move Right / Cut
+                else if (relY < 0.48) triggerKeyAction('2'); // Upper center = Loft Six
+                else triggerKeyAction('5');                  // Center = Bowl / Smash Hit
+            });
+
+            // Keyboard controls
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (k === ' ' || k === 'enter' || k === '5') {
+                    e.preventDefault();
+                    triggerKeyAction('5');
+                } else if (k === 'arrowleft' || k === 'a' || k === '4') {
+                    e.preventDefault();
+                    triggerKeyAction('4');
+                } else if (k === 'arrowright' || k === 'd' || k === '6') {
+                    e.preventDefault();
+                    triggerKeyAction('6');
+                } else if (k === 'arrowup' || k === 'w' || k === '2') {
+                    e.preventDefault();
+                    triggerKeyAction('2');
+                } else if (k === 'arrowdown' || k === 's' || k === '8') {
+                    e.preventDefault();
+                    triggerKeyAction('8');
+                } else if (['1', '3', '7', '9', '0', '*', '#'].includes(k)) {
+                    e.preventDefault();
+                    triggerKeyAction(k);
+                } else if (k === 'm' || k === 'escape') {
+                    e.preventDefault();
+                    triggerKeyAction('menu');
+                }
+            });
+
+            // Header Bar Toggles
+            const btnAutoBowl = document.getElementById('btn-autobowl');
+            btnAutoBowl.addEventListener('click', () => {
+                game.autoBowl = !game.autoBowl;
+                btnAutoBowl.textContent = `AUTO-BOWL: ${game.autoBowl ? 'ON' : 'OFF'}`;
+                sound.keyClick();
+                if (game.autoBowl && game.phase === 'PRE_BOWL_AIM') {
+                    game.timer = 0;
+                }
+            });
+
+            const btnSpeed = document.getElementById('btn-speed');
+            btnSpeed.addEventListener('click', () => {
+                game.speedIdx = (game.speedIdx + 1) % SPEED_PRESETS.length;
+                const p = SPEED_PRESETS[game.speedIdx];
+                btnSpeed.textContent = `PACE: ${p.label}`;
+                sound.keyClick();
+            });
+
+            const btnView = document.getElementById('btn-view');
+            const appWrapper = document.getElementById('app-wrapper');
+            let frameMode = true;
+            btnView.addEventListener('click', () => {
+                frameMode = !frameMode;
+                appWrapper.classList.toggle('screen-only-mode', !frameMode);
+                btnView.textContent = frameMode ? 'BIG LCD' : 'PHONE';
+                sound.keyClick();
+            });
+
+            const btnSound = document.getElementById('btn-sound');
+            function toggleMute() {
+                sound.muted = !sound.muted;
+                btnSound.textContent = sound.muted ? '🔇' : '🔊';
+                if (!sound.muted) sound.keyClick();
+            }
+            btnSound.addEventListener('click', toggleMute);
+
+            // ============================================================================
+            // 9. INITIALIZE & START MAIN LOOP IMMEDIATELY
+            // ============================================================================
+            prepareNextDeliveryPlan();
+            render();
+
+            function gameLoop() {
+                updateGame();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+
+            requestAnimationFrame(gameLoop);
+        })();
+    </script>
+</body>
+</html>
